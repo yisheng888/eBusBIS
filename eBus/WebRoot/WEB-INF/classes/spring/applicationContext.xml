@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-2.5.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd"
+	default-lazy-init="true" default-autowire="byName">
+	<description>Spring公共配置文件</description>
+
+	<!-- 定义受环境影响易变的变量 -->
+	<bean name="config"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
+		<property name="ignoreResourceNotFound" value="true" />
+		<property name="locations">
+			<list>
+				<value>classpath:spring/*.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- 数据源配置,在生产环境使用应用服务器的数据库连接池
+		<bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean"> 
+			<property name="jndiName" value="java:comp/env/jdbc/microbound"> </property> 
+		</bean>
+	-->
+	<bean id="dataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName">
+			<value>com.mysql.jdbc.Driver</value>
+		</property>
+		<property name="url">
+			<value>
+				jdbc:mysql://localhost:3306/${database.dbName}?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8
+			</value>
+		</property>
+		<property name="username">
+			<value>${database.username}</value>
+		</property>
+		<property name="password">
+			<value>${database.password}</value>
+		</property>
+	</bean>
+
+	<!-- Hibernate配置 -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">
+					org.hibernate.dialect.MySQLDialect
+				</prop>
+				<prop key="hibernate.cache.use_second_level_cache">
+					true
+				</prop>
+				<prop key="hibernate.cache.use_query_cache">true</prop>
+				<prop key="hibernate.cache.provider_class">
+					org.hibernate.cache.EhCacheProvider
+				</prop>
+				<prop key="hibernate.show_sql">
+					${hibernate.show_sql}
+				</prop>
+				<prop key="hibernate.format_sql">true</prop>
+				<prop key="hibernate.connection.release_mode">after_statement</prop>
+			</props>
+		</property>
+		<property name="mappingDirectoryLocations">
+			<list>
+				<value>classpath:/hibernate</value>
+			</list>
+		</property>
+	</bean>
+
+
+	<!-- 事务配置 -->
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
+	<!-- 使用annotation定义事务 -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+
+	<context:component-scan base-package="com" />
+
+	<bean id="initService" class="com.hkmotors.service.impl.InitService"
+		scope="singleton" init-method="init" lazy-init="false">
+		<property name="propertyMap">
+			<map>
+				<entry key="picture.save.filePath">
+					<value>${picture.save.filePath}</value>
+				</entry>
+			</map>
+		</property>
+	</bean>
+
+</beans>
